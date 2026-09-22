@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -69,14 +70,34 @@ public class Git {
         try {
             digest = MessageDigest.getInstance("SHA-1");
         } catch (Exception e) {
-            throw new RuntimeException("Something's not working. ");
+            throw new RuntimeException("Something's not working in MessageDigest.");
         }
         
         //digest.update(fileBytes);
         byte[] encodedHash = digest.digest(fileBytes);
-
         String hexString = HexFormat.of().formatHex(encodedHash);
         System.out.println(hexString);
+
+        //add to objects folder
+        try {
+            File fileTitle = new File("./git/objects/" + hexString);
+            
+            try {
+                fileTitle.createNewFile();
+                String file1content = Files.readString(Paths.get("./git/objects/" + hexString));
+                System.out.println(file1content);
+            } catch (Exception e) {
+                System.out.println("Failed to create a new file: " + e);
+            }
+
+            FileWriter writer1 = new FileWriter("./git/objects/" + hexString);
+            writer1.write(hexString);
+            writer1.close();
+
+        } catch (Exception e) {
+            System.out.println("This didn't work because " + e);
+        }
+
         return hexString;
     }
 
