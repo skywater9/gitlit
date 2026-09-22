@@ -1,4 +1,10 @@
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
 public class Git {
     
@@ -42,6 +48,36 @@ public class Git {
         } else {
             System.out.println("Git Repository Created");
         }
+
+        File test = new File("test.txt");
+        try {
+            test.createNewFile();
+            hashFile(test.getPath());
+        } catch (Exception e) {
+            System.out.println(e);
+        }
         
     }
+
+
+    //Copied hashFile from fileHasher.java
+    public static String hashFile(String filePath) throws IOException {
+        Path path = Paths.get(filePath);
+        byte[] fileBytes = Files.readAllBytes(path);
+        MessageDigest digest;
+    
+        try {
+            digest = MessageDigest.getInstance("SHA-1");
+        } catch (Exception e) {
+            throw new RuntimeException("Something's not working. ");
+        }
+        
+        //digest.update(fileBytes);
+        byte[] encodedHash = digest.digest(fileBytes);
+
+        String hexString = HexFormat.of().formatHex(encodedHash);
+        System.out.println(hexString);
+        return hexString;
+    }
+
 }
