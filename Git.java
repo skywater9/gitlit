@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.HexFormat;
 
 public class Git {
@@ -96,6 +97,23 @@ public class Git {
 
         } catch (Exception e) {
             System.out.println("This didn't work because " + e);
+        }
+
+        //add to index 
+        //need to add index, how is index stored 
+
+        try {
+            
+            File fileTitle = new File("./git/objects/" + hexString);
+            //ArrayLis<String, String> indexContent = Files.read
+            
+
+
+            
+
+
+        } catch (Exception e) {
+
         }
 
         return hexString;
