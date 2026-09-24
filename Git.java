@@ -1,3 +1,4 @@
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -7,6 +8,8 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Git {
     
@@ -102,18 +105,22 @@ public class Git {
         //add to index 
         //need to add index, how is index stored 
 
+        ArrayList<String> indexArray = new ArrayList<>();
+        indexArray.add(hexString);
+        indexArray.add(filePath);
+        
+
         try {
+            Files.write("./git/index", indexArray);
             
-            File fileTitle = new File("./git/objects/" + hexString);
-            //ArrayLis<String, String> indexContent = Files.read
-            
+            FileWriter writer = new FileWriter("./git/index");
+            writer.write(indexArray);
+            writer.close();
 
-
-            
-
-
+            FileWriter writer = new BufferedWriter(new FileWriter(filePath));
+            writer.write(indexArray);
         } catch (Exception e) {
-
+            System.out.println("This didn't work because " + e);
         }
 
         return hexString;
