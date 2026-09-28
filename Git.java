@@ -1,4 +1,3 @@
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -6,17 +5,34 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.util.HashMap;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.ArrayList;
 
 public class Git {
     
     public static void main(String[] args) {
-        
+        //Test with two files: test and hello
+        initialize();
+        File test = new File("test.txt");
+        File hello = new File("hello.txt");
+        try {
+            test.createNewFile();
+            String hashTest = hashFile(test.getPath());
+            addToObjects(hashTest, test.getPath());
+            addToIndex(hashTest, test.getPath());
+
+            hello.createNewFile();
+            String hashHello = hashFile(hello.getPath());
+            addToObjects(hashHello, hello.getPath());
+            addToIndex(hashHello, hello.getPath());
+        } catch (Exception e) {
+            System.out.println(e);
+        }  
+    }
+
+    public static void initialize() {
         boolean existed = false;
-        if (new File("/git").exists() && new File("/git/objects").exists() && new File("/git/index").exists() && new File("/git/HEAD").exists()) {
+        if (new File("./git").exists() && new File("./git/objects").exists() && new File("./git/index").exists() && new File("./git/HEAD").exists()) {
             existed = true;
         }
 
@@ -49,19 +65,10 @@ public class Git {
         }
 
         if (existed == true) {
-            System.out.println("Git directory already exists. ");
+            System.out.println("Git Repository Already Exists");
         } else {
             System.out.println("Git Repository Created");
         }
-
-        File test = new File("test.txt");
-        try {
-            test.createNewFile();
-            hashFile(test.getPath());
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        
     }
 
 
@@ -81,49 +88,82 @@ public class Git {
         byte[] encodedHash = digest.digest(fileBytes);
         String hexString = HexFormat.of().formatHex(encodedHash);
         System.out.println(hexString);
+        return hexString;
+    }
 
-        //add to objects folder
+    public static void addToObjects(String hexString, String filePath) {
+        //Make new file in objects folder titled the hexString hash
+        File newFile = new File("./git/objects/" + hexString);
+
+        //If the file already exists, meaning same contents already saved, do nothing
+        if (newFile.exists()) {
+            return;
+        }
+        
         try {
-            File fileTitle = new File("./git/objects/" + hexString);
-            
-            try {
-                fileTitle.createNewFile();
-                String file1content = Files.readString(Paths.get("./git/objects/" + hexString));
-                System.out.println(file1content);
-            } catch (Exception e) {
-                System.out.println("Failed to create a new file: " + e);
-            }
+            newFile.createNewFile();
 
+            //Copy contents from original file and write them into the object 
+            String content = Files.readString(Paths.get(filePath));
             FileWriter writer1 = new FileWriter("./git/objects/" + hexString);
-            writer1.write(hexString);
+            writer1.write(content);
             writer1.close();
 
+            //Use below to test if works:
+            // String file1content = Files.readString(Paths.get("./git/objects/" + hexString));
+            // System.out.println(file1content);
         } catch (Exception e) {
-            System.out.println("This didn't work because " + e);
+            System.out.println("Failed to create a new file: " + e);
         }
+    }
 
-        //add to index 
-        //need to add index, how is index stored 
-
-        ArrayList<String> indexArray = new ArrayList<>();
-        indexArray.add(hexString);
-        indexArray.add(filePath);
-        
-
+    public static void addToIndex(String hexString, String filePath) {
+        Path indexPath = Paths.get("./git/index");
         try {
-            Files.write("./git/index", indexArray);
-            
-            FileWriter writer = new FileWriter("./git/index");
-            writer.write(indexArray);
-            writer.close();
+            //Reads all contents of index file into an arraylist of arraylists
+            boolean exists = false;
+            ArrayList<ArrayList<String>> indexContents = new ArrayList<>();
+            for (String line : Files.readAllLines(indexPath)) {
+                String[] partsOfLine = line.split(" ");
+                ArrayList<String> lineInIndex = new ArrayList<>(); //ArrayList of each line in index
+                lineInIndex.add(partsOfLine[0]);
+                lineInIndex.add(partsOfLine[1]);
+                indexContents.add(lineInIndex);
+            }
 
-            FileWriter writer = new BufferedWriter(new FileWriter(filePath));
-            writer.write(indexArray);
+            //Checks if already exists by going through each arraylist containing each line of index file
+            for (ArrayList<String> lineInIndex : indexContents) {
+                if (lineInIndex.get(1).equals(filePath)) {
+                    lineInIndex.set(0, hexString);
+                    exists = true;
+                    break;
+                } 
+                // else if (lineInIndex.get(0).equals(hexString)) {
+                //     lineInIndex.set(1, filePath);
+                //     exists = true;
+                //     break;
+                // }
+            }
+
+            //If the arraylist containing the file name doesn't already exist, add to arraylist of lines called indexContents
+            if (exists == false) {
+                ArrayList<String> lineInIndex = new ArrayList<>();
+                lineInIndex.add(hexString);
+                lineInIndex.add(filePath);
+                indexContents.add(lineInIndex);
+            }
+            
+            //Add indexContents back to actual file
+            ArrayList<String> fileLines = new ArrayList<>();
+            for (ArrayList<String> lineInIndex : indexContents) {
+                fileLines.add(lineInIndex.get(0) + " " + lineInIndex.get(1));
+            }
+            Files.writeString(indexPath, String.join("\n", fileLines));
+            
         } catch (Exception e) {
             System.out.println("This didn't work because " + e);
         }
 
-        return hexString;
     }
 
 }
