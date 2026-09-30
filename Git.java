@@ -13,21 +13,10 @@ public class Git {
     public static void main(String[] args) {
         // Test with two files: test and hello
         init();
-        File test = new File("test.txt");
-        File hello = new File("hello.txt");
-        try {
-            test.createNewFile();
-            String hashTest = hashFile(test.getPath());
-            addToObjects(hashTest, test.getPath());
-            addToIndex(hashTest, test.getPath());
+        add("testing/test.txt");
+        add("testing/hello.txt");
+        add("testing/subfolder/test.txt");
 
-            hello.createNewFile();
-            String hashHello = hashFile(hello.getPath());
-            addToObjects(hashHello, hello.getPath());
-            addToIndex(hashHello, hello.getPath());
-        } catch (Exception e) {
-            System.out.println(e);
-        }
     }
 
     public static void init() {
@@ -87,14 +76,24 @@ public class Git {
 
         // digest.update(fileBytes);
         byte[] encodedHash = digest.digest(fileBytes);
-        String hexString = HexFormat.of().formatHex(encodedHash);
-        System.out.println(hexString);
-        return hexString;
+        String hashString = HexFormat.of().formatHex(encodedHash);
+        System.out.println(hashString);
+        return hashString;
     }
 
-    public static void addToObjects(String hexString, String filePath) {
-        // Make new file in objects folder titled the hexString hash
-        File newFile = new File("./git/objects/" + hexString);
+    public static void add(String filePath) {
+        try {
+            String hashString = hashFile(filePath);
+            addToObjects(hashString, filePath);
+            addToIndex(hashString, filePath);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+
+    public static void addToObjects(String hashString, String filePath) {
+        // Make new file in objects folder titled the hashString hash
+        File newFile = new File("./git/objects/" + hashString);
 
         // If the file already exists, meaning same contents already saved, do nothing
         if (newFile.exists()) {
@@ -106,19 +105,19 @@ public class Git {
 
             // Copy contents from original file and write them into the object
             String content = Files.readString(Paths.get(filePath));
-            FileWriter writer1 = new FileWriter("./git/objects/" + hexString);
+            FileWriter writer1 = new FileWriter("./git/objects/" + hashString);
             writer1.write(content);
             writer1.close();
 
             // Use below to test if works:
-            // String file1content = Files.readString(Paths.get("./git/objects/" + hexString));
+            // String file1content = Files.readString(Paths.get("./git/objects/" + hashString));
             // System.out.println(file1content);
         } catch (Exception e) {
             System.out.println("Failed to create a new file: " + e);
         }
     }
 
-    public static void addToIndex(String hexString, String filePath) {
+    public static void addToIndex(String hashString, String filePath) {
         Path indexPath = Paths.get("./git/index");
         try {
             // Reads all contents of index file into an arraylist of arraylists
@@ -137,11 +136,11 @@ public class Git {
             // index file
             for (ArrayList<String> lineInIndex : indexContents) {
                 if (lineInIndex.get(1).equals(filePath)) {
-                    lineInIndex.set(0, hexString);
+                    lineInIndex.set(0, hashString);
                     exists = true;
                     break;
                 }
-                // else if (lineInIndex.get(0).equals(hexString)) {
+                // else if (lineInIndex.get(0).equals(hashString)) {
                 // lineInIndex.set(1, filePath);
                 // exists = true;
                 // break;
@@ -152,7 +151,7 @@ public class Git {
             // lines called indexContents
             if (exists == false) {
                 ArrayList<String> lineInIndex = new ArrayList<>();
-                lineInIndex.add(hexString);
+                lineInIndex.add(hashString);
                 lineInIndex.add(filePath);
                 indexContents.add(lineInIndex);
             }
