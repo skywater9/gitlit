@@ -16,7 +16,6 @@ public class Git {
         add("testing/test.txt");
         add("testing/hello.txt");
         add("testing/subfolder/test.txt");
-
     }
 
     public static void init() {
