@@ -8,6 +8,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 
 public class Git {
 
@@ -124,7 +125,7 @@ public class Git {
             boolean exists = false;
             ArrayList<ArrayList<String>> indexContents = new ArrayList<>();
             for (String line : Files.readAllLines(indexPath)) {
-                String[] partsOfLine = line.split(" ");
+                String[] partsOfLine = line.split(" ", 3);
                 ArrayList<String> lineInIndex = new ArrayList<>(); // ArrayList of each line in
                                                                    // index
                 lineInIndex.add(partsOfLine[0]);
@@ -211,8 +212,92 @@ public class Git {
 
             return treeHash;
         } catch (Exception e) {
-            System.out.println(e);
-            return null;
+            throw new RuntimeException("Tree creation error", e);
+        }
+    }
+
+    public static String createTreeFromIndex() {
+        Path indexPath = Paths.get("./git/index");
+        ArrayList<String> workingList = new ArrayList<>();
+
+        try {
+            // read index and copy over to workingList with the prefix
+            for (String indexLine : Files.readAllLines(indexPath)) {
+                if (!indexLine.isBlank()) {
+                    workingList.add("blob " + indexLine);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("workingList creation error", e);
+        }
+
+        // loop until whole tree is collapsed
+        while (true) {
+            // sort based on path
+            workingList.sort(Comparator.comparing(line -> line.split(" ", 3)[2]));
+
+            // find the deepest directory in workingList
+            String deepestDirectory = "";
+            int deepestLevel = -1;
+            for (String line : workingList) {
+                String[] lineParts = line.split(" ", 3);
+                String fullPath = lineParts[2];
+
+                int lastSlashIndex = fullPath.lastIndexOf('/');
+
+                // assign parent before last slash
+                String parentName;
+                if (lastSlashIndex == -1) {
+                    parentName = "";
+                } else {
+                    parentName = fullPath.substring(0, lastSlashIndex);
+                }
+
+                // assign depth of parent
+                int directoryDepth;
+                if (parentName.isEmpty()) {
+                    directoryDepth = 0;
+                } else {
+                    directoryDepth = parentName.split("/").length;
+                }
+
+                // if we found a deeper level, update integer deepestLevel
+                if (directoryDepth > deepestLevel) {
+                    deepestLevel = directoryDepth;
+                    deepestDirectory = parentName;
+                }
+            }
+
+            // run createTree on the deepest directory
+            String treeHash = createTree(workingList, deepestDirectory);
+
+            // end if deepest directory is root
+            if (deepestDirectory.isEmpty()) {
+                return treeHash;
+            }
+
+            // collapse the deepest directory and replace it as a tree entry
+            ArrayList<String> collapsedList = new ArrayList<>();
+            for (String line : workingList) {
+                String[] lineParts = line.split(" ", 3);
+                String fullPath = lineParts[2];
+                int lastSlashIndex = fullPath.lastIndexOf('/');
+
+                // if line is not in that deepest directory then add to collapsedList
+                String parentName;
+                if (lastSlashIndex == -1) {
+                    parentName = "";
+                } else {
+                    parentName = fullPath.substring(0, lastSlashIndex);
+                }
+                if (!parentName.equals(deepestDirectory)) {
+                    collapsedList.add(line);
+                }
+            }
+
+            // add the tree
+            collapsedList.add("tree " + treeHash + " " + deepestDirectory);
+            workingList = collapsedList;
         }
     }
 }
